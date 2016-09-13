@@ -94,8 +94,10 @@ intTable_ interpExp(A_exp exp, Table_ t) {
             int value = lookup(t, exp->u.id);
             if (value == -1) {
                 printf("[Error] Identifier %s does not exist!\n", exp->u.id);
+                return intTable(value, t);
+            } else {
+                return intTable(value, t);
             }
-            return intTable(value, t);
         }
         case A_numExp: {
             return intTable(exp->u.num, t);
