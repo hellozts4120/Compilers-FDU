@@ -1,0 +1,24 @@
+Project Name: 
+	Straight-Line Program Interpreter
+
+Project Specification: 
+	Please See PROGRAM Section, Chapter One, Modern Compiler Implementation in C.
+	(Page 12 for English Version, Page Idontknow for Chinese Version.:))
+
+Due Date: 
+	23:59, 22th September, 2016
+
+Submission: 
+	make a tarball,e.g: 13302010001.tar, which contains all necessary source files and a document. 
+	Then upload to ftp://10.132.141.33/classes/13/161 ±‡“Î‘≠¿Ì/WORK_UPLOAD/lab0
+
+
+You should all use the same format: 
+First put all the files you need to submit in the directory named by your student number, e.g. 13302010001.
+Second come to the parent directory of 13302010001, and use the following command "tar cvf 13302010001.tar 13302010001"
+to compress it to 13302010001.tar. 
+
+Note: Standard Test Platform is Red Hat 9. 
+
+TA in Charge: Zhang Xiaohan xh_zhang@fudan.edu.cn
+
