@@ -20,10 +20,34 @@ void adjust(void)
 }
 
 int commentStateNum = 0;
+char *buffer;
+unsigned int len = 0;
+unsigned int capacity;
+const int INITIAL_CAPACITY = 16;
+
+void initBuffer(void) {
+  capacity = 16;
+  buffer = checked_malloc(INITIAL_CAPACITY);
+  buffer[0] = 0;
+}
+
+void appendBuffer(char c) {
+  int curLen = strlen(buffer);
+  if (curLen + 1 >= capacity) {
+    capacity = capacity * 2;
+    char *tempBuffer;
+    tempBuffer = checked_malloc(capacity);
+    memcpy(tempBuffer, buffer, curLen + 1);
+    free(buffer);
+    buffer = tempBuffer;
+  }
+  buffer[curLen] = c;
+  buffer[curLen + 1] = 0;
+}
 
 %}
 
-%x COMMENT STRING
+%x IN_COMMENT IN_STRING
 
 %%
 
@@ -79,7 +103,7 @@ nil      {adjust(); return NIL;}
 
 
   /* Case when meet with Identifiers */
-[a-z|A-Z]+[a-z|A-z|0-9|_]*  {
+[a-z|A-Z]+[a-z|A-Z|0-9|_]* {
     adjust();
     yylval.sval = yytext;
     return ID;
@@ -98,7 +122,7 @@ nil      {adjust(); return NIL;}
 "/*" {
     adjust();
     commentStateNum += 1;
-    BEGIN(COMMENT);
+    BEGIN(IN_COMMENT);
 }
 
 "*/" {
@@ -107,12 +131,15 @@ nil      {adjust(); return NIL;}
     yyterminate();
 }
 
-<COMMENT>{
+<IN_COMMENT>{
+
+    /* Use it if it's allowed to use nested comment...
     "/*" {
         adjust();
         commentStateNum += 1;
         continue;
     }
+    */
 
     "*/" {
         adjust();
@@ -132,11 +159,56 @@ nil      {adjust(); return NIL;}
         EM_error(EM_tokPos, "EOF detected!");
         yyterminate();
     }
+
+    . {adjust();}
 }
 
   /* Case of Strings */
+\"  {
+  adjust();
+  initBuffer();
+  len = charPos - 1;
+  BEGIN(IN_STRING);
+}
 
-  /*TODO*/
+<IN_STRING>{
+  \" {
+    adjust();
+    if (buffer[0] == '\0') {
+      yylval.sval = "(null)";
+    } else {
+      yylval.sval = buffer;
+    }
+
+    EM_tokPos = len;
+    BEGIN(INITIAL);
+
+    return STRING;
+  }
+
+  <<EOF>> {
+    EM_error(EM_tokPos, "EOF detected!");
+    yyterminate();
+  }
+
+  . {
+    adjust();
+    char *temp = yytext;
+    while (*temp) {
+      appendBuffer(*temp++);
+    }
+  }
+
+  \\n {adjust();appendBuffer('\n');}
+  \\t {adjust();appendBuffer('\t');}
+  \\v {adjust();appendBuffer('\v');}
+  \\a {adjust();appendBuffer('\a');}
+  \\r {adjust();appendBuffer('\r');}
+  \\b {adjust();appendBuffer('\b');}
+  \\f {adjust();appendBuffer('\f');}
+  
+}
+
 
 
 .  {
