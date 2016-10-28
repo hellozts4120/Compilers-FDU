@@ -23,7 +23,18 @@ void yyerror(char *s)
 	A_var var;
 	A_exp exp;
 	/* et cetera */
-	}
+    A_expList expList;
+    A_dec dec;
+    A_decList decList;
+    A_namety namety;
+    A_nametyList nametyList;
+    A_efield efield;
+    A_efieldList efieldList;
+    A_field field;
+    A_fieldList fieldList;
+    A_fundec fundec;
+    A_fundecList fundecList;
+}
 
 %token <sval> ID STRING
 %token <ival> INT
@@ -50,15 +61,82 @@ void yyerror(char *s)
 
 %type <exp> exp program
 /* et cetera */
+%type <var> value
+%type <exp> varExp nilExp intExp stringExp callExp opExp recordExp seqExp assignExp ifExp whileExp forExp breakExp letExp arrayExp
+%type <expList> seqList argList argList_
+%type <dec> dec functionDec varDec typeDec
+%type <decList> decList
+%type <namety> namety
+%type <nametyList> nametyList
+%type <efield> efield
+%type <efieldList> efieldList efieldList_
+%type <field> field
+%type <fieldList> fieldList fieldList_
+%type <fundec> funDec_
+%type <fundecList> funDecList
 
 %start program
 
 %%
 
 program:   exp    {absyn_root=$1;}
-	;
 
-exp:   ID         {$$=A_VarExp(EM_tokPos,A_SimpleVar(EM_tokPos,S_Symbol($1)));}
-	;
+exp:    varExp    {$$=$1}
+    |   nilExp    {$$=$1}
+    |   intExp    {$$=$1}
+    |   stringExp {$$=$1}
+    |   callExp   {$$=$1}
+    |   opExp     {$$=$1}
+    |   recordExp {$$=$1}
+    |   seqExp    {$$=$1}
+    |   assignExp {$$=$1}
+    |   ifExp     {$$=$1}
+    |   whileExp  {$$=$1}
+    |   forExp    {$$=$1}
+    |   breakExp  {$$=$1}
+    |   letExp    {$$=$1}
+    |   arrayExp  {$$=$1}
+    
+varExp: value {$$=A_VarExp(EM_tokPos,$1);}
 
-	
+nilExp: NIL {$$=A_NilExp(EM_tokPos);}
+
+intExp: INT {$$=A_IntExp(EM_tokPos,$1);}
+
+stringExp: STRING {$$=A_StringExp(EM_tokPos,$1);}
+
+callExp: ID LPAREN {$$=A_CallExp(EM_tokPos,S_Symbol($1),$3);}
+
+opExp:  exp PLUS exp {$$=A_OpExp(EM_tokPos,A_plusOp,$1,$3);}
+    |   exp MINUS exp {$$=A_OpExp(EM_tokPos,A_minusOp,$1,$3);}
+    |   exp TIMES exp {$$=A_OpExp(EM_tokPos,A_timesOp,$1,$3);}
+    |   exp DIVIDE exp {$$=A_OpExp(EM_tokPos,A_divideOp,$1,$3);}
+    |   exp EQ exp {$$=A_OpExp(EM_tokPos,A_eqOp,$1,$3);}
+    |   exp NEQ exp {$$=A_OpExp(EM_tokPos,A_neqOp,$1,$3);}
+    |   exp GT exp {$$=A_OpExp(EM_tokPos,A_gtOp,$1,$3);}
+    |   exp LT exp {$$=A_OpExp(EM_tokPos,A_ltOp,$1,$3);}
+    |   exp GE exp {$$=A_OpExp(EM_tokPos,A_geOp,$1,$3);}
+    |   exp LE exp {$$=A_OpExp(EM_tokPos,A_leOp,$1,$3);}
+    |   MINUS exp {$$=A_OpExp(EM_tokPos,A_minusOp,A_IntExp(EM_tokPos,0),$2);}
+
+recordExp: ID LBRACE efieldList RBRACE {$$=A_RecordExp(EM_tokPos,S_Symbol($1),$3);}
+
+seqExp: LPAREN seqList RPAREN {$$=A_SeqExp(EM_tokPos,$2);}
+
+assignExp: value ASSIGN exp {$$=A_AssignExp(EM_tokPos,$1,$3);}
+
+ifExp:  IF exp THEN exp ELSE exp {$$=A_IfExp(EM_tokPos,$2,$4,$6);}
+    |   IF exp THEN exp {$$=A_IfExp(EM_tokPos,$2,$4,A_NilExp(EM_tokPos));}
+    |   exp OR exp {$$=A_IfExp(EM_tokPos,$1,A_IntExp(EM_tokPos,1),$3);}
+    |   exp AND exp {$$=A_IfExp(EM_tokPos,$1,$3,A_IntExp(EM_tokPos,0));}
+    
+whileExp: WHILE exp DO exp {$$=A_WhileExp(EM_tokPos,$2,$4);}
+
+forExp: FOR ID ASSIGN exp TO exp DO exp {$$=A_ForExp(EM_tokPos,S_Symbol($2),$4,$6,$8);}
+
+breakExp: BREAK {$$=A_BreakExp(EM_tokPos);}
+
+letExp: LET decList IN seqList END  {$$=A_LetExp(EM_tokPos,$2,A_SeqExp(EM_tokPos, $4));}
+
+arrayExp: ID LBRACK exp RBRACK OF exp {$$=A_ArrayExp(EM_tokPos,S_Symbol($1),$3,$6);}
+
