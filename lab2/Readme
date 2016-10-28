@@ -1,0 +1,23 @@
+Project Name: Parsing & Abstract Syntax
+Project Specification: 
+  Please See PROGRAM Section, Chapter Three & Four, Modern Compiler Implementation in C.
+  (Page 82 & 101 for English Version, Page Youknow for Chinese Version.:))
+
+  
+Due Date: 23:59, 20th, November, 2016
+
+Submission:
+  make a tarball, e.g. 13302010001.tar, which contains all source files in project-2 directory and a document.txt. 
+  submit to ftp://10.132.141.33/classes/13/COMPILER_HOME/WORK_UPLOAD/lab2/
+
+Format: 
+  First put all the files you need to submit into a directory named by your student number, e.g. 13302010001.
+  Second come to the parent directory of 13302010001, and use the following command "tar cvf 13302010001.tar 13302010001" to compress it to 13302010001.tar.
+
+
+Note: 
+  Compiling Error means Zero Point.  Make sure that your output is the same as reference output.
+
+WARNING: COPY FROM OTHERS WILL BOTH GET ZERO!
+
+TA in Charge: Zhang Xiaohan	xh_zhang@fudan.edu.cn
