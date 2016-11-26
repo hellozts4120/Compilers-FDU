@@ -14,7 +14,8 @@ struct expty transExp (S_table venv, S_table tenv, A_exp a);
 void         transDec (S_table venv, S_table tenv, A_dec d);
        Ty_ty transTy  (		     S_table tenv, A_ty a);
 Ty_ty actual_ty(Ty_ty ty);
-Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fielfList);
+Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fieldList);
+Ty_fieldList makeFieldTyList(S_table tenv, A_fieldList a_fieldList);
 
 int isSameArgs(S_table venv, S_table tenv, A_expList el, Ty_tyList tl, A_exp fun); 
 int isSameType(Ty_ty first, Ty_ty second);

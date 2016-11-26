@@ -1,19 +1,19 @@
 #include "semant.h"
 
 Ty_ty actual_ty(Ty_ty ty){
-    while(ty && ty->kind == Ty_name) {
+    while (ty && ty->kind == Ty_name) {
         ty = ty->u.name.ty;
     }
     return ty;
 }
 
-Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fielfList) {
+Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fieldList) {
     // return a list of tenv's all types
     Ty_tyList head = NULL;
 	Ty_tyList tail = NULL;
 
-	while(a_fielfList){
-        A_field field = a_fielfList->head;
+	while (a_fieldList) {
+        A_field field = a_fieldList->head;
         Ty_ty ty_ty = S_look(tenv, field->typ);
         if (!ty_ty) {
             EM_error(field->pos, "undefined type %s", S_name(field->typ));
@@ -26,9 +26,34 @@ Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fielfList) {
             tail->tail = Ty_TyList(ty_ty, NULL);
             tail = tail->tail;
         }
-        a_fielfList = a_fielfList->tail;
+        a_fieldList = a_fieldList->tail;
 	}
 	return head;
+}
+
+Ty_fieldList makeFieldTyList(S_table tenv, A_fieldList a_fieldList) {
+    // return a list of tenv's all fields, for A_recordTy trans
+    A_fieldList fList = a_fieldList;
+    Ty_ty ty_ty;
+    Ty_fieldList tList = NULL;
+    Ty_fieldList head;
+
+    while (fList) {
+        ty_ty = S_look(tenv, fList->head->typ);
+        if (!ty_ty) {
+            EM_error(field->pos, "undefined type %s", S_name(field->typ));
+        }
+        Ty_field tField = Ty_Field(fList->head->name, ty_ty);
+        if (!tList) {
+            tList = Ty_FieldList(tField, NULL);
+            head = tList;
+        } else {
+            tList->tail = Ty_FieldList(tField, NULL);
+            tList = tList->tail;
+        }
+        fList = fList->tail;
+    }
+    return head;
 }
 
 // assert if the args of expList and tyList are the same
@@ -379,9 +404,35 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a) {
 }
 
 void transDec (S_table venv, S_table tenv, A_dec d) {
-    
+    switch (d->kind) {
+        case A_functionDec: {
+            
+        }
+        case A_varDec: {
+            
+        }
+        case A_typeDec: {
+            
+        }
+        default: {
+            assert(0);
+        }
+    }
 }
 
 Ty_ty transTy (S_table tenv, A_ty a) {
-    
+    switch (a->kind) {
+        case A_nameTy: {
+            return Ty_Name(a->u.name, S_look(tenv, a->u.array));
+        }
+        case A_recordTy: {
+            return Ty_Record(makeFieldTyList(tenv, a->u.record));
+        }
+        case A_arrayTy: {
+            return Ty_Array(S_look(tenv, a->u.array));
+        }
+        default: {
+            assert(0);
+        }
+    }
 }
