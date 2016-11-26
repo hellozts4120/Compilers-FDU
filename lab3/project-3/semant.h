@@ -16,7 +16,8 @@ void         transDec (S_table venv, S_table tenv, A_dec d);
 Ty_ty actual_ty(Ty_ty ty);
 Ty_tyList makeFormalTyList(S_table tenv, A_fieldList a_fielfList);
 
-bool isSameArgs(S_table venv, S_table tenv, A_expList el, Ty_tyList tl, A_exp fun); 
-bool isSameType(Ty_ty first, Ty_ty second);
+int isSameArgs(S_table venv, S_table tenv, A_expList el, Ty_tyList tl, A_exp fun); 
+int isSameType(Ty_ty first, Ty_ty second);
+int isEfieldsMatch(S_table venv, S_table tenv, Ty_ty t, A_exp e);
 
 #endif
