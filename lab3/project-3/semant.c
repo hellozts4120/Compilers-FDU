@@ -40,9 +40,6 @@ Ty_fieldList makeFieldTyList(S_table tenv, A_fieldList a_fieldList) {
 
     while (fList) {
         ty_ty = S_look(tenv, fList->head->typ);
-        if (!ty_ty) {
-            EM_error(field->pos, "undefined type %s", S_name(field->typ));
-        }
         Ty_field tField = Ty_Field(fList->head->name, ty_ty);
         if (!tList) {
             tList = Ty_FieldList(tField, NULL);
@@ -406,16 +403,151 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a) {
 void transDec (S_table venv, S_table tenv, A_dec d) {
     switch (d->kind) {
         case A_functionDec: {
-            
+            A_fundec prevFunc = NULL;
+            A_fundecList funcList = d->u.function;
+
+            while (funcList) {
+                if (strcmp("", S_name(funcList->head->result)) == 0) {  // case of type void
+                    funcList->head->result = S_Symbol("void");
+                }
+
+                // two different functions must have different names
+                if (prevFunc && !strcmp(S_name(funcList->head->name), S_name(prevFunc->name))) {
+                    EM_error(prevFunc->pos, "two functions has same name");
+                }
+
+                // check formals' list
+                Ty_tyList formalTys = makeFormalTyList(tenv, funcList->head->params);
+                S_enter(venv, funcList->head->name, E_FunEntry(formalTys, S_look(tenv, funcList->head->result)));
+
+                prevFunc = funcList->head;
+                funcList = funcList->tail;
+            }
+
+            funcList = d->u.function;
+
+            while (funcList) {
+                Ty_tyList formalTys = makeFormalTyList(tenv, funcList->head->params);
+                S_beginScope(venv);
+
+                A_fieldList fList = funcList->head->params;
+                Ty_tyList tList = formalTys;
+                while (fList) {
+                    // store their functions' type in a table
+                    S_enter(venv, fList->head->name, E_VarEntry(tList->head));
+                    fList = fList->tail;
+                    tList = tList->tail;
+                }
+
+                Ty_ty returnTy = actual_ty(S_look(tenv, funcList->head->result));
+                struct expty et = transExp(venv, tenv, funcList->head->body);
+
+                if (returnTy->kind == Ty_void && et.ty->kind != Ty_void) {
+                    // error when function void return value
+                    EM_error(funcList->head->body->pos, "procedure returns value");
+                }
+
+                S_endScope(venv);
+                funcList = funcList->tail;
+            }
+            break;
         }
         case A_varDec: {
-            
+            struct expty et;
+            A_exp initExp = d->u.var.init;
+            // check if exist init exp
+            if (!initExp) {  // no init exp, using void
+                et = expTy(NULL, Ty_Void());
+                S_enter(venv, d->u.var.var, E_VarEntry(et.ty));
+                break;
+            }
+            // with init exp
+            Ty_ty ty_ty = NULL;
+            if (d->u.var.typ) {
+                ty_ty = S_look(tenv, d->u.var.typ);
+            }
+            et = transExp(venv, tenv, initExp);
+            if (!ty_ty) {
+                if(et.ty->kind == Ty_nil) {
+                    // nil must be constrained by record type
+                    EM_error(d->pos, "type required");
+                }
+                ty_ty = et.ty;
+            }
+            et.ty = actual_ty(et.ty);
+            // case of type mismatch
+            if (actual_ty(ty_ty)->kind != et.ty->kind) {
+                // if record or et is nil, it's ok
+                if (!(actual_ty(ty_ty)->kind == Ty_record && et.ty->kind == Ty_nil)){
+                    EM_error(d->u.var.init->pos, "type mismatch");
+                }
+            }
+
+            // handle specific exp type
+            switch (et.ty->kind) {
+                case Ty_record: {
+                    // one record can only have one record type, can't be init by other record type
+                    string initRecord = S_name(initExp->u.record.typ);  // init record type
+                    string origRecord = S_name(d->u.var.typ);  // origin record type
+                    // if no record name, it's ok. occur strange bug in my system, it should be void string...
+                    // version: Ubuntu-14.04.2-amd64
+                    if(origRecord != "" && (int)(origRecord) != 4229463 && strcmp(initRecord, origRecord)){
+                        EM_error(d->u.var.init->pos, "type mismatch");
+                    };
+                    break;
+                }
+                case Ty_array: {
+                    // handle case of recursively type dec and recursively function dec
+                    string initRecord = S_name(initExp->u.record.typ);
+                    string origRecord = S_name(d->u.var.typ);
+                    if (!strcmp(initRecord, origRecord)) {
+                        break;
+                    }
+
+                    // exist d->typ, check with init exp
+                    if (S_look(tenv,d->u.var.typ)) {
+                        int isSame = 0;
+                        Ty_ty ty = S_look(tenv, d->u.var.init->u.array.typ);
+                        while (ty && ty->kind == Ty_name) {
+                            string name = S_name(ty->u.name.sym);
+                            string varName = S_name(d->u.var.typ);
+                            if (strcmp("int", name) && strcmp("string", name) && !strcmp(name, varName)) {
+                                isSame = 1;
+                                break;
+                            }
+                            ty = ty->u.name.ty;
+                        }
+
+                        if (isSame) {
+                            break;
+                        }
+
+                        if (et.ty->kind == Ty_record) {
+                            // if record type, must be same as init exp
+                            Ty_ty initType = S_look(tenv, d->u.var.init->u.array.typ);
+                            Ty_ty varType = S_look(tenv, d->u.var.typ);
+                            if (strcmp(S_name(varType->u.name.sym), S_name(initType->u.name.sym))) {
+                                EM_error(d->u.var.init->pos, "type mismatch");
+                            }
+                        }
+                        else {
+                            EM_error(d->pos, "type mismatch");
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+            S_enter(venv, d->u.var.var, E_VarEntry(et.ty));
+            break;
         }
         case A_typeDec: {
             
         }
         default: {
-            assert(0);
+            break;
         }
     }
 }
